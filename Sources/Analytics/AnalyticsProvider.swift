@@ -10,5 +10,6 @@ import Foundation
 public protocol AnalyticsProvider {
   func setUp()
   func setUserId(_: String)
-  func logEvent(_ event: AnalyticsEvent)
+  func logEvent(_: AnalyticsEvent)
+  func setUserProperty(_: UserProperty)
 }

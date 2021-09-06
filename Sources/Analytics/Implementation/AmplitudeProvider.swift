@@ -26,6 +26,16 @@ public struct AmplitudeProvider: AnalyticsProvider {
   public func setUserId(_ id: String) {
     Amplitude.instance().setUserId(id, startNewSession: false)
   }
+  
+  public func setUserProperty(_ property: UserProperty) {
+    let identify = AMPIdentify()
+    
+    property.dictionaryRepresentation.forEach { key, value in
+      identify.set(key, value: value as? NSObject)
+    }
+    
+    Amplitude.instance().identify(identify)
+  }
     
   private func _setUp(apiKey: String) {
     // Enable sending automatic session events

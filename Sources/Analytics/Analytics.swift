@@ -13,6 +13,10 @@ public enum Analytics {
     _provider?.setUserId(id)
   }
   
+  public static func setUserProperty(_ property: UserProperty) {
+    _provider?.setUserProperty(property)
+  }
+  
   public static func logEvent(_ event: AnalyticsEvent) {
     switch event.logEventOnce {
     case true:
