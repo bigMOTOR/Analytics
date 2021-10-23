@@ -1,6 +1,7 @@
 import Foundation
 
 private var _provider: AnalyticsProvider?
+private var _deferedPropertiesStore: SafeCache<String, AnalyticsEventProperties> = SafeCache()
 
 public enum Analytics {
   
@@ -26,6 +27,20 @@ public enum Analytics {
     case false:
       _provider?.logEvent(event)
     }
+  }
+  
+  // MARK: - Deferred Events
+  public static func logDeferred<T: DeferredConstructed>(_ event: T) {
+    let storedPropertiesForEvent = _deferedPropertiesStore[event.name] ?? event.defaultAnalyticsEventProperties
+    let enrichedEvent = EnrichedAnalyticsEvent(event, deferredParameters: storedPropertiesForEvent)
+    logEvent(enrichedEvent)
+    _deferedPropertiesStore[event.name] = nil
+  }
+  
+  public static func setDeferredProperty<T: DeferredConstructed>(for event: T, key: T.DeferredProperty, value: Any) {
+    var storedPropertiesForEvent = _deferedPropertiesStore[event.name] ?? event.defaultAnalyticsEventProperties
+    storedPropertiesForEvent[key.rawValue] = value
+    _deferedPropertiesStore[event.name] = storedPropertiesForEvent
   }
   
 }
