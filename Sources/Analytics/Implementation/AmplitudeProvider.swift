@@ -20,7 +20,7 @@ public struct AmplitudeProvider: AnalyticsProvider {
   }
   
   public func logEvent(_ event: AnalyticsEvent) {
-    Amplitude.instance().logEvent(event.name, withEventProperties: event.parameters)
+    Amplitude.instance().logEvent(event.name, withEventProperties: event.properties)
   }
   
   public func setUserId(_ id: String) {

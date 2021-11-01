@@ -9,7 +9,7 @@ import Foundation
 
 struct EnrichedAnalyticsEvent: AnalyticsEvent {
   let name: String
-  let parameters: AnalyticsEventProperties?
+  let properties: AnalyticsEventProperties?
   let logEventOnce: Bool
   
   init<T: DeferredConstructed>(_ event: T, deferredParameters: AnalyticsEventProperties) {
