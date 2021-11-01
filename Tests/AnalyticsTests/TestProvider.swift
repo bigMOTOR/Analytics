@@ -22,10 +22,4 @@ class TestProvider: AnalyticsProvider {
   
   func setUserProperty(_: UserProperty) {}
   
-  func getLoggedDeferredProperty<T>(eventIdx: Int, for key: String) -> T? {
-    return events[eventIdx]
-      .parameters
-      .flatMap { $0[key] as? T }
-  }
-  
 }

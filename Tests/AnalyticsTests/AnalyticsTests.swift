@@ -10,62 +10,125 @@ final class AnalyticsTests: XCTestCase {
     Analytics.register(provider)
   }
   
-  func testDeferredConstructedEventContainsDeferredProperty() {
-    Analytics.setDeferredProperty(for: TestEvent.just, key: .keyA, value: true)
-    Analytics.logDeferred(TestEvent.just)
-    let logged: Bool? = provider.getLoggedDeferredProperty(eventIdx: 0, for: TestEvent.DeferredKey.keyA.rawValue)
+  func testAnalyticEventHasName() {
+    let someName = "SomeName"
+    Analytics.logEvent(SimpleEvent(name: someName))
+    XCTAssertEqual(provider.events.last?.name, someName)
+  }
+  
+  func testAnalyticEventHasProperty() {
+    let parameterKey = "SomeKey"
+    Analytics.logEvent(SimpleEvent(properties: [parameterKey: true]))
+    let eventParameterValue: Bool? = provider.events.last?.getProperty(key: parameterKey)
+    XCTAssertEqual(eventParameterValue, true)
+  }
+  
+  func testAnalyticEventContainsDeferredProperty() {
+    let deferredPropertyKey = "DeferredKey"
+    let deferredPropertyValue = "ABC123"
+    Analytics.setDeferredProperty(key: deferredPropertyKey, value: deferredPropertyValue, for: SimpleEvent.name)
+    Analytics.logEvent(SimpleEvent())
+    let eventParameterValue: String? = provider.events.last?.getProperty(key: deferredPropertyKey)
+    XCTAssertEqual(eventParameterValue, deferredPropertyValue)
+  }
+
+  func testAnalyticEventContainsDeferredPropertiesSepareteSended() {
+    let deferredPropertyKeyA = "DeferredKeyA"
+    let deferredPropertyValueA = true
+
+    let deferredPropertyKeyB = "DeferredKeyB"
+    let deferredPropertyValueB = 31102021
+    
+    Analytics.setDeferredProperty(key: deferredPropertyKeyA, value: deferredPropertyValueA, for: SimpleEvent.name)
+    Analytics.setDeferred(properties: [deferredPropertyKeyB: deferredPropertyValueB], for: SimpleEvent.name)
+    
+    Analytics.logEvent(SimpleEvent())
+    let eventParameters = provider.events.last
+    let parameterValueA: Bool? = eventParameters?.getProperty(key: deferredPropertyKeyA)
+    XCTAssertEqual(parameterValueA, deferredPropertyValueA)
+    let parameterValueB: Int? = eventParameters?.getProperty(key: deferredPropertyKeyB)
+    XCTAssertEqual(parameterValueB, deferredPropertyValueB)
+  }
+  
+  func testAnalyticEventContainsDeferredPropertySetByArray() {
+    let deferredPropertyKeyA = "DeferredKeyA"
+    let deferredPropertyValueA = true
+
+    let deferredPropertyKeyB = "DeferredKeyB"
+    let deferredPropertyValueB = 31102021
+    
+    Analytics.setDeferred(properties: [deferredPropertyKeyA: deferredPropertyValueA, deferredPropertyKeyB: deferredPropertyValueB],
+                          for: SimpleEvent.name)
+    
+    Analytics.logEvent(SimpleEvent())
+    let eventParameters = provider.events.last
+    let parameterValueA: Bool? = eventParameters?.getProperty(key: deferredPropertyKeyA)
+    XCTAssertEqual(parameterValueA, deferredPropertyValueA)
+    let parameterValueB: Int? = eventParameters?.getProperty(key: deferredPropertyKeyB)
+    XCTAssertEqual(parameterValueB, deferredPropertyValueB)
+  }
+
+  func testAnalyticEventKeepsPropertiesAfterDeferredConstructedCalls() {
+    let parameterKey = "SomeKey"
+    Analytics.setDeferredProperty(key: "DeferredKeyA", value: 123, for: SimpleEvent.name)
+    Analytics.logEvent(SimpleEvent(name: SimpleEvent.name, properties: [parameterKey: true]))
+    let logged: Bool? = provider.events.last?.getProperty(key: parameterKey)
     XCTAssertEqual(logged, true)
   }
-  
-  func testDeferredConstructedEventHasDefaultProperty() {
-    Analytics.logDeferred(TestEvent.just)
-    let logged: String? = provider.getLoggedDeferredProperty(eventIdx: 0, for: TestEvent.DeferredKey.keyB.rawValue)
-    XCTAssertEqual(logged, _someDefaultValue)
+
+  func testAnalyticEventDeferredPropertiesUpdatesInitial() {
+    let parameterKey = "SomeKey"
+    Analytics.setDeferredProperty(key: parameterKey, value: 1, for: SimpleEvent.name)
+    Analytics.logEvent(SimpleEvent(properties: [parameterKey: 2]))
+    let logged: Int? = provider.events.last?.getProperty(key: parameterKey)
+    XCTAssertEqual(logged, 1)
   }
-  
-  func testDeferredConstructedEventUpdatesDefaultProperty() {
-    let value = "CBA"
-    Analytics.setDeferredProperty(for: TestEvent.just, key: .keyB, value: value)
-    Analytics.logDeferred(TestEvent.just)
-    let logged: String? = provider.getLoggedDeferredProperty(eventIdx: 0, for: TestEvent.DeferredKey.keyB.rawValue)
-    XCTAssertEqual(logged, value)
+
+  func testAnalyticEventMixDeferredAndInitialProperties() {
+    let deferredPropertyKeyA = "KeyA"
+    let deferredPropertyValueA = true
+
+    let deferredPropertyKeyB = "KeyB"
+    let deferredPropertyValueB = 31102021
+    
+    Analytics.setDeferredProperty(key: deferredPropertyKeyA, value: deferredPropertyValueA, for: SimpleEvent.name)
+    Analytics.logEvent(SimpleEvent(properties: [deferredPropertyKeyB: deferredPropertyValueB]))
+    
+    let eventParameters = provider.events.last
+    let parameterValueA: Bool? = eventParameters?.getProperty(key: deferredPropertyKeyA)
+    XCTAssertEqual(parameterValueA, deferredPropertyValueA)
+    let parameterValueB: Int? = eventParameters?.getProperty(key: deferredPropertyKeyB)
+    XCTAssertEqual(parameterValueB, deferredPropertyValueB)
   }
-  
-  func testDeferredConstructedEventMixDefaultAndNewProperty() {
-    Analytics.setDeferredProperty(for: TestEvent.just, key: .keyA, value: true)
-    Analytics.logDeferred(TestEvent.just)
-    let loggedNew: Bool? = provider.getLoggedDeferredProperty(eventIdx: 0, for: TestEvent.DeferredKey.keyA.rawValue)
-    let loggedDefault: String? = provider.getLoggedDeferredProperty(eventIdx: 0, for: TestEvent.DeferredKey.keyB.rawValue)
-    XCTAssertEqual(loggedNew, true)
-    XCTAssertEqual(loggedDefault, _someDefaultValue)
-  }
-  
-  func testDeferredConstructedEventCleanAfterLogged() {
-    Analytics.setDeferredProperty(for: TestEvent.just, key: .keyA, value: true)
-    Analytics.logDeferred(TestEvent.just)
-    Analytics.logDeferred(TestEvent.just)
-    let logged: Bool? = provider.getLoggedDeferredProperty(eventIdx: 1, for: TestEvent.DeferredKey.keyA.rawValue)
+
+  func testDeferredConstructedPropertiesCleanUpAfterEventLogged() {
+    let parameterKey = "SomeKey"
+    
+    Analytics.setDeferredProperty(key: parameterKey, value: true, for: SimpleEvent.name)
+    Analytics.logEvent(SimpleEvent())
+    Analytics.logEvent(SimpleEvent())
+    let logged: Bool? = provider.events.last?.getProperty(key: parameterKey)
     XCTAssertNil(logged)
   }
   
 }
 
-private let _someDefaultValue = "ABC"
-private enum TestEvent: AnalyticsEvent, DeferredConstructed {
-  
-  case just
-  
-  enum DeferredKey: String {
-    case keyA
-    case keyB
+private extension AnalyticsEvent {
+  func getProperty<T>(key: String) -> T? {
+    return properties.flatMap { $0[key] as? T }
   }
+}
 
-  var name: String {
-    return "test"
-  }
+private struct SimpleEvent: AnalyticsEvent {
   
-  var defaultParameters: [DeferredKey: Any] {
-    return [.keyB: _someDefaultValue]
+  static let name = "MyEvent"
+  
+  let name: String
+  let properties: AnalyticsEventProperties?
+  
+  init(name: String = Self.name, properties: AnalyticsEventProperties? = nil) {
+    self.name = name
+    self.properties = properties
   }
   
 }

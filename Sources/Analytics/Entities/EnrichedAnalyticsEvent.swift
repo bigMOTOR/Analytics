@@ -11,11 +11,4 @@ struct EnrichedAnalyticsEvent: AnalyticsEvent {
   let name: String
   let properties: AnalyticsEventProperties?
   let logEventOnce: Bool
-  
-  init<T: DeferredConstructed>(_ event: T, deferredParameters: AnalyticsEventProperties) {
-    self.name = event.name
-    self.logEventOnce = event.logEventOnce
-    self.parameters = deferredParameters
-  }
-  
 }

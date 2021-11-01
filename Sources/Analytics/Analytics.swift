@@ -1,7 +1,7 @@
 import Foundation
 
 private var _provider: AnalyticsProvider?
-private var _deferedPropertiesStore: SafeCache<String, AnalyticsEventProperties> = SafeCache()
+private var _deferredPropertiesMutationsStore: SafeCache<String, (AnalyticsEventProperties)->AnalyticsEventProperties> = SafeCache()
 
 public enum Analytics {
   
@@ -19,28 +19,38 @@ public enum Analytics {
   }
   
   public static func logEvent(_ event: AnalyticsEvent) {
-    switch event.logEventOnce {
+    let storedMutationForEvent = _deferredPropertiesMutationsStore[event.name] ?? { return $0 }
+    
+    let eventToLog = EnrichedAnalyticsEvent(name: event.name,
+                                            properties: storedMutationForEvent(event.properties ?? [:]),
+                                            logEventOnce: event.logEventOnce)
+    
+    _deferredPropertiesMutationsStore[event.name] = nil
+    
+    switch eventToLog.logEventOnce {
     case true:
-      guard !UserDefaults.standard.loggedEventsKeys.contains(event.name) else { return }
-      UserDefaults.standard.appendLogEvent(event)
-      _provider?.logEvent(event)
+      guard !UserDefaults.standard.loggedEventsKeys.contains(eventToLog.name) else { return }
+      UserDefaults.standard.appendLogEvent(eventToLog)
+      _provider?.logEvent(eventToLog)
     case false:
-      _provider?.logEvent(event)
+      _provider?.logEvent(eventToLog)
     }
   }
   
-  // MARK: - Deferred Events
-  public static func logDeferred<T: DeferredConstructed>(_ event: T) {
-    let storedPropertiesForEvent = _deferedPropertiesStore[event.name] ?? event.defaultAnalyticsEventProperties
-    let enrichedEvent = EnrichedAnalyticsEvent(event, deferredParameters: storedPropertiesForEvent)
-    logEvent(enrichedEvent)
-    _deferedPropertiesStore[event.name] = nil
+  // MARK: - Deferred Event Properties
+  public static func setDeferredProperty(key: String, value: Any, for eventName: String) {
+    Self.setDeferred(properties: [key: value], for: eventName)
   }
   
-  public static func setDeferredProperty<T: DeferredConstructed>(for event: T, key: T.DeferredProperty, value: Any) {
-    var storedPropertiesForEvent = _deferedPropertiesStore[event.name] ?? event.defaultAnalyticsEventProperties
-    storedPropertiesForEvent[key.rawValue] = value
-    _deferedPropertiesStore[event.name] = storedPropertiesForEvent
+  public static func setDeferred(properties deferredProperties: [String: Any], for eventName: String) {
+    
+    let propertiesMutation: (AnalyticsEventProperties)->AnalyticsEventProperties = { properties in
+      properties.merging(deferredProperties) { (_, new) in new }
+    }
+    
+    let storedMutationForEvent = _deferredPropertiesMutationsStore[eventName] ?? { return $0 }
+    let mutationsComposition = storedMutationForEvent |> propertiesMutation
+    _deferredPropertiesMutationsStore[eventName] = mutationsComposition
   }
   
 }
