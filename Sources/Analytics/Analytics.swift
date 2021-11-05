@@ -1,5 +1,6 @@
 import Foundation
 
+let firstEventKey = "first_event"
 private var _provider: AnalyticsProvider?
 private var _deferredPropertiesMutationsStore: SafeCache<String, (AnalyticsEventProperties)->AnalyticsEventProperties> = SafeCache()
 
@@ -20,9 +21,10 @@ public enum Analytics {
   
   public static func logEvent(_ event: AnalyticsEvent) {
     let storedMutationForEvent = _deferredPropertiesMutationsStore[event.name] ?? { return $0 }
+    let propertiesMutation = storedMutationForEvent |> _firstFlagMutation(for: event)
     
     let eventToLog = EnrichedAnalyticsEvent(name: event.name,
-                                            properties: storedMutationForEvent(event.properties ?? [:]),
+                                            properties: propertiesMutation(event.properties ?? [:]),
                                             logEventOnce: event.logEventOnce)
     
     Self.clearDeferredProperties(eventName: event.name)
@@ -59,3 +61,9 @@ public enum Analytics {
   
 }
 
+private func _firstFlagMutation(for event: AnalyticsEvent) -> (AnalyticsEventProperties)->AnalyticsEventProperties  {
+  return { initialProperties in
+    let isFirstEvent = !UserDefaults.standard.loggedEventsKeys.contains(event.name)
+    return [firstEventKey: isFirstEvent].merging(initialProperties) { _, new in new }
+  }
+}

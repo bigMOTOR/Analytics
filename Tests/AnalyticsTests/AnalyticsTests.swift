@@ -23,6 +23,20 @@ final class AnalyticsTests: XCTestCase {
     XCTAssertEqual(eventParameterValue, true)
   }
   
+  func testAnalyticEventLoggedOnce() {
+    let event = SimpleEvent(name: "Unique", logEventOnce: true)
+    UserDefaults.standard.loggedEventsKeys = [event.name]
+    Analytics.logEvent(event)
+    XCTAssertNil(provider.events.last)
+  }
+  
+  func testAnalyticEventContainsFirstEventFlag() {
+    let event = SimpleEvent()
+    Analytics.logEvent(event)
+    let eventParameterValue: Bool? = provider.events.last?.getProperty(key: firstEventKey)
+    XCTAssertEqual(eventParameterValue, true)
+  }
+  
   func testAnalyticEventContainsDeferredProperty() {
     let deferredPropertyKey = "DeferredKey"
     let deferredPropertyValue = "ABC123"
@@ -111,6 +125,17 @@ final class AnalyticsTests: XCTestCase {
     XCTAssertNil(logged)
   }
   
+  func testAnalyticEventWithDeferredPropertyContainsFirstEventFlag() {
+    let deferredPropertyKey = "DeferredKey"
+    let deferredPropertyValue = "ABC123"
+    Analytics.setDeferredProperty(key: deferredPropertyKey, value: deferredPropertyValue, for: SimpleEvent.name)
+    Analytics.logEvent(SimpleEvent())
+    let eventParameterValue: String? = provider.events.last?.getProperty(key: deferredPropertyKey)
+    XCTAssertEqual(eventParameterValue, deferredPropertyValue)
+    let firstEventParameterValue: Bool? = provider.events.last?.getProperty(key: firstEventKey)
+    XCTAssertEqual(firstEventParameterValue, true)
+  }
+  
 }
 
 private extension AnalyticsEvent {
@@ -125,10 +150,12 @@ private struct SimpleEvent: AnalyticsEvent {
   
   let name: String
   let properties: AnalyticsEventProperties?
+  let logEventOnce: Bool
   
-  init(name: String = Self.name, properties: AnalyticsEventProperties? = nil) {
+  init(name: String = Self.name, properties: AnalyticsEventProperties? = nil, logEventOnce: Bool = false) {
     self.name = name
     self.properties = properties
+    self.logEventOnce = logEventOnce
   }
   
 }
