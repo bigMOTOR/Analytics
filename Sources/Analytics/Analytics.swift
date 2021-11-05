@@ -25,7 +25,7 @@ public enum Analytics {
                                             properties: storedMutationForEvent(event.properties ?? [:]),
                                             logEventOnce: event.logEventOnce)
     
-    _deferredPropertiesMutationsStore[event.name] = nil
+    Self.clearDeferredProperties(eventName: event.name)
     
     switch eventToLog.logEventOnce {
     case true:
@@ -51,6 +51,10 @@ public enum Analytics {
     let storedMutationForEvent = _deferredPropertiesMutationsStore[eventName] ?? { return $0 }
     let mutationsComposition = storedMutationForEvent |> propertiesMutation
     _deferredPropertiesMutationsStore[eventName] = mutationsComposition
+  }
+  
+  public static func clearDeferredProperties(eventName: String) {
+    _deferredPropertiesMutationsStore[eventName] = nil
   }
   
 }
