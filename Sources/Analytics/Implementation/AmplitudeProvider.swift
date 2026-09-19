@@ -6,41 +6,43 @@
 //
 
 import Foundation
-import Amplitude
+import AmplitudeSwift
 
-public struct AmplitudeProvider: AnalyticsProvider {
+public final class AmplitudeProvider: AnalyticsProvider {
   private let _apiKey: String
+  private var _amplitude: Amplitude?
   
   public init(apiKey: String) {
     self._apiKey = apiKey
   }
   
   public func setUp() {
-    _setUp(apiKey: _apiKey)
+    _amplitude = Amplitude(
+      configuration: Configuration(
+        apiKey: _apiKey,
+        autocapture: .sessions
+      )
+    )
   }
   
   public func logEvent(_ event: AnalyticsEvent) {
-    Amplitude.instance().logEvent(event.name, withEventProperties: event.properties)
+    guard let amplitude = _amplitude else { assertionFailure("Amplitude not configured!"); return }
+    amplitude.track(event: .init(eventType: event.name, eventProperties: event.properties))
   }
   
   public func setUserId(_ id: String) {
-    Amplitude.instance().setUserId(id, startNewSession: false)
+    guard let amplitude = _amplitude else { assertionFailure("Amplitude not configured!"); return }
+    amplitude.setUserId(userId: id)
   }
   
   public func setUserProperty(_ property: UserProperty) {
-    let identify = AMPIdentify()
+    guard let amplitude = _amplitude else { assertionFailure("Amplitude not configured!"); return }
+    let identify = Identify()
     
     property.dictionaryRepresentation.forEach { key, value in
-      identify.set(key, value: value as? NSObject)
+      identify.set(property: key, value: value)
     }
     
-    Amplitude.instance().identify(identify)
-  }
-    
-  private func _setUp(apiKey: String) {
-    // Enable sending automatic session events
-    Amplitude.instance().trackingSessionEvents = true
-    // Initialize SDK
-    Amplitude.instance().initializeApiKey(apiKey)
+    amplitude.identify(identify: identify)
   }
 }

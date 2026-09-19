@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "Analytics",
     platforms: [
-        .iOS(.v12), .tvOS(.v10), .watchOS(.v3), .macOS(.v10_15)
+        .iOS(.v13), .tvOS(.v13), .watchOS(.v7), .macOS(.v10_15)
     ],
     products: [
         // Products define the executables and libraries a package produces, and make them visible to other packages.
@@ -16,7 +16,7 @@ let package = Package(
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
-        .package(name: "Amplitude", url: "https://github.com/amplitude/Amplitude-iOS.git", .upToNextMajor(from: "8.0.0" )),
+        .package(name: "Amplitude-Swift", url: "https://github.com/amplitude/Amplitude-Swift.git", .upToNextMajor(from: "1.19.0" )),
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
@@ -24,7 +24,7 @@ let package = Package(
         .target(
             name: "Analytics",
             dependencies: [
-              "Amplitude"
+              .product(name: "AmplitudeSwift", package: "Amplitude-Swift")
             ]),
         .testTarget(
             name: "AnalyticsTests",
